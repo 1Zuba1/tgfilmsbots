@@ -1,6 +1,4 @@
-#by @K1p1k#
-#Downloaded from TG @KiTools#
-#Leave this inscription#
+
 
 from aiogram import executor, types
 from aiogram.dispatcher import FSMContext
@@ -37,7 +35,3 @@ async def satrt_nofication(self):
 
 
 executor.start_polling(dp, on_startup=satrt_nofication)
-
-#Автор: @K1p1k#
-#Загружено с TG @KiTools#
-#Оставь эту надпись#
