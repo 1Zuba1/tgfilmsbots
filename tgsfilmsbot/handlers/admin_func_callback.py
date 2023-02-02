@@ -1,0 +1,232 @@
+#by @K1p1k#
+#Downloaded from TG @KiTools#
+#Leave this inscription#
+
+
+from loader import bot, dp
+from aiogram import types
+from aiogram.dispatcher import FSMContext
+from myFilters.admin import IsAdminC
+from myFilters.admin import IsAdminCAndChenneger_swich_player, IsAdminCAndChenneger_kbname_player_admin
+from states import admin as astate
+from data.db import get_AllFilms, only_list, get_AllChennel, delete_Chennel, update_nameChennel, swich_player, get_AllUser
+from random import randint
+from keybord_s.ohter import ikb_back_oikb, ikb_back, ikb_close
+from keybord_s.admin import admin_menu_list, admin_menu_main, get_Player_menu, admin_menu_text, admin_menu_franchise
+
+#
+@dp.callback_query_handler(IsAdminC(), text='back_main_menu_admin')
+async def list_data_check(call: types.Message):
+    await call.message.edit_reply_markup(admin_menu_main)
+    
+
+#обработка запроса на рассылку#
+@dp.callback_query_handler(IsAdminC(), text='myling_list_start_admin')
+async def myling_list_start_admin(call: types.Message, state: FSMContext):
+    ikb=types.InlineKeyboardMarkup(row_width=1)
+    ikb.row(types.InlineKeyboardButton(text='Добавить кнопку▶️', callback_data='add_ikb_milling_admin'))
+    ikb.row(ikb_back_oikb)
+    message_data=await bot.send_message(chat_id=call.from_user.id, text='Хорошо отправь текст для рассылки✒️\nМожно использовать стандартную разметку✂️', reply_markup=ikb)
+    async with state.proxy() as data:
+        data['ikb_list']=list()
+        data['message_id']=message_data.message_id
+    await astate.Admin_State.myling_list.text.set()
+
+#обработка кнопки Добавить кнопку#
+@dp.callback_query_handler(IsAdminC(), text='add_ikb_milling_admin', state=astate.Admin_State.myling_list.text)
+async def add_ikb_to_miling(call: types.CallbackQuery, state: FSMContext):
+    ikb=types.InlineKeyboardMarkup(row_width=1)
+    ikb.row(types.InlineKeyboardButton(text='Назад🔙', callback_data='back_to_text_milling'))
+    async with state.proxy() as data:
+        await bot.edit_message_text(chat_id=call.from_user.id, message_id=data['message_id'], text='Отправь мне надпись на кнопке🔖', reply_markup=ikb) 
+    await astate.Admin_State.myling_list.add_ikb.text.set()
+
+@dp.callback_query_handler(IsAdminC(), text='back_to_text_milling', state=[astate.Admin_State.myling_list.add_ikb.text, astate.Admin_State.myling_list.add_ikb.url])
+async def back_to_milling_from_add_ikb(call: types.CallbackQuery, state: FSMContext):
+    ikb=types.InlineKeyboardMarkup(row_width=1)
+    ikb.row(types.InlineKeyboardButton(text='Добавить кнопку▶️', callback_data='add_ikb_milling_admin'))
+    ikb.row(ikb_back_oikb)
+    async with state.proxy() as data:
+        await bot.edit_message_text(chat_id=call.from_user.id, message_id=data['message_id'],  text='Хорошо отправь текст для рассылки✒️\nМожно использовать стандартную разметку✂️', reply_markup=ikb)
+    await astate.Admin_State.myling_list.text.set()
+
+#списки#
+@dp.callback_query_handler(IsAdminC(), text='list_data_admin')
+async def list_data_check(call: types.Message):
+    await call.message.edit_reply_markup(admin_menu_list)
+
+@dp.callback_query_handler(IsAdminC(), text='list_users_admin')
+async def list_data_films(call: types.Message):
+    file_films=open(file='data//users_data.txt', mode='w+', encoding='UTF-8')
+    for i in await get_AllUser():
+        file_films.write(f'Username: {i[1]}, ID: {i[0]}\n')
+    file_films.close()
+    try:
+        await bot.send_document(chat_id=call.from_user.id, document=open(file='data//users_data.txt', mode='rb'), reply_markup=ikb_close)
+    except:
+        await call.answer('У вас нет пользователей❌')
+
+@dp.callback_query_handler(IsAdminC(), text='list_films_admin')
+async def list_data_films(call: types.Message):
+    file_films=open(file='data//films_data.txt', mode='w+', encoding='UTF-8')
+    for i in await get_AllFilms():
+        file_films.write(f'Код: {i[0]}, название: {i[1]}\n')
+    file_films.close()
+    try:
+        await bot.send_document(chat_id=call.from_user.id, document=open(file='data//films_data.txt', mode='rb'), reply_markup=ikb_close)
+    except:
+        await call.answer('У вас нет фильмов❌')
+    
+@dp.callback_query_handler(IsAdminC(), text='list_chennel_admin')
+async def list_data_films(call: types.Message):
+    file_films=open(file='data//chennal_data.txt', mode='w+', encoding='UTF-8')
+    for i in await get_AllChennel():
+        file_films.write(f'Индификатор(вводить при удалении): {i[0]}, Отображение: {i[1]}, Сыллка: {i[2]}\n')
+    file_films.close()
+    try:
+        await bot.send_document(chat_id=call.from_user.id, document=open(file='data//chennal_data.txt', mode='rb'), reply_markup=ikb_close)
+    except:
+        await call.answer('У вас нет каналов❌')
+
+#Принятие каллбека о добавления фильма в базу данных#
+@dp.callback_query_handler(IsAdminC(), text='add_film_admin')
+async def add_film_admin(call: types.Message, state: FSMContext):
+    message_data=await bot.send_message(chat_id=call.from_user.id, text='Хорошо отправь мне код🔑', reply_markup=types.InlineKeyboardMarkup(row_width=1).\
+        add(types.InlineKeyboardButton(text='Сгенирировать♻️', callback_data='generetion_fims_code_admin'), ikb_back_oikb))
+    async with state.proxy() as data:
+        data['message_id']=message_data.message_id
+    await astate.Admin_State.add_film.code.set()
+
+#обработка кнопки сгенирировать#
+@dp.callback_query_handler(IsAdminC(), text='generetion_fims_code_admin', state=astate.Admin_State.add_film.code)
+async def add_film_generetion_fims_code(call: types.Message, state: FSMContext):
+    list_id=await only_list(kortage=await get_AllFilms(type='films_code'))
+    while True:
+        code=randint(0, 9999)
+        if code not in list_id:
+            break
+    async with state.proxy() as data:
+        data['code']=code
+    await call.message.edit_text('Хорошо теперь отправь мне название🎫')
+    await call.message.edit_reply_markup(ikb_back)
+    await astate.Admin_State.add_film.name.set()
+
+#удаления канала#
+@dp.callback_query_handler(IsAdminC(), text='delete_film_admin')
+async def delete_film_admin(call: types.Message, state: FSMContext):
+    message_data=await bot.send_message(chat_id=call.from_user.id, text='Хорошо отправь мне код фильма которго хочешь удалить🗑', reply_markup=ikb_back)
+    async with state.proxy() as data:
+        data['message_id']=message_data.message_id
+    await astate.Admin_State.delete_film.code.set()
+
+#добавления канала#
+@dp.callback_query_handler(IsAdminC(), text='add_chennel_admin')
+async def add_chennel_admin(call: types.Message, state: FSMContext):
+    message_data=await bot.send_message(chat_id=call.from_user.id, text='Хорошо дайте в канале права мне "просматривать участников" и "пригласительные сыллками", после отправь мне @username или id канала которго хотите добавить➕', reply_markup=ikb_back)
+    async with state.proxy() as data:
+        data['message_id']=message_data.message_id
+    await astate.Admin_State.add_chennel.username.set()
+
+#удаления канала#
+@dp.callback_query_handler(IsAdminC(), text='delete_chennel_admin')
+async def add_chennel_admin(message: types.Message, state: FSMContext):
+    message_data=await bot.send_message(chat_id=message.from_user.id, text='Хорошо дайте канал который удалить➖', reply_markup=ikb_back)
+    async with state.proxy() as data:
+        data['message_id']=message_data.message_id
+    await astate.Admin_State.delete_chennel.username.set()
+
+#меню франшизы#
+@dp.callback_query_handler(IsAdminC(), text='franchise_settings_admin')
+async def franchise_settings_admin(call: types.CallbackQuery):
+    await call.message.edit_reply_markup(admin_menu_franchise)
+
+#добавление франшизы#
+@dp.callback_query_handler(IsAdminC(), text='franchise_add_admin')
+async def add_franchise(call: types.CallbackQuery, state: FSMContext):
+    msg=await call.message.answer('Отправь мне объект для франшизы🌀\n\nМожно ипользовать разметку HTML✂️', reply_markup=ikb_back)
+    async with state.proxy() as data:
+        data['message_id']=msg.message_id
+    await astate.Admin_State.add_franchise.name_obj.set()
+
+@dp.callback_query_handler(IsAdminC(), text='franchise_delete_admin')
+async def delete_franchise(call: types.CallbackQuery, state: FSMContext):
+    msg=await call.message.answer('Отправь объект франшизы который удалить♻️\nПисать как при добавление фильма\nТо есть даже с разметкой(если есть)⚠️', reply_markup=ikb_back)
+    async with state.proxy() as data:
+        data['message_id']=msg.message_id
+    await astate.Admin_State.delete_franchise.name_obj.set()
+
+@dp.callback_query_handler(IsAdminC(), text='check_chennel_admin')
+async def check_chennel_admin(call: types.CallbackQuery, state: FSMContext):
+    text=''
+    message_data=await bot.send_message(chat_id=call.from_user.id, text='Хорошо я проверяю подождите♻️')
+    me=await bot.get_me()
+    me_username=me.username
+    for i in await get_AllChennel():
+        try:
+            me_chat_status=await bot.get_chat_administrators(chat_id=i[0])
+            chat_status=await bot.get_chat(chat_id=i[0])
+            await bot.get_chat_member(chat_id=i[0], user_id=call.from_user.id)
+            await update_nameChennel(chennel_identifier=i[0], name=chat_status.full_name)
+            for e in me_chat_status:
+                if e['user']['username'] == me_username:
+                    if e['can_invite_users']:
+                        text+=f'Канал: {i[1]} прошел проверку✅\n\n'
+                    else:
+                        text+=f'Канал: {i[1]} не имею доступ к сыллкам❗️\n\n'
+                    await bot.edit_message_text(chat_id=call.from_user.id, message_id=message_data.message_id, text=f'Хорошо я проверяю подождите♻️\n\n{text}')
+                    break
+        except:
+            await delete_Chennel(chennel_identifier=i[0])
+            text+=f'Был удален {i[1]}🗑\n\n'
+            await bot.edit_message_text(chat_id=call.from_user.id, message_id=message_data.message_id, text=f'Хорошо я проверяю подождите♻️\n\n{text}')
+    await bot.edit_message_text(chat_id=call.from_user.id, message_id=message_data.message_id, text=f'Проверка закончена❇️\n\n{text}\n\nТак же если изменились название каналов то в кнопке они тоже поменяются🔰', reply_markup=ikb_close)
+
+@dp.callback_query_handler(IsAdminC(), text='player_settings_admin')
+async def settings_player(call: types.CallbackQuery):
+    await call.message.edit_reply_markup(await get_Player_menu())
+
+#вкл./выкл. плееров#
+@dp.callback_query_handler(IsAdminCAndChenneger_kbname_player_admin())
+async def chennger_kbname_player_admin(call: types.CallbackQuery, state: FSMContext):
+    message_data1=await bot.send_message(chat_id=call.from_user.id, text='Хорошо отправь мне новое название кнопки📌', reply_markup=ikb_back)
+    message_data2=call.message
+    async with state.proxy() as data:
+        data['message_id1']=message_data1.message_id
+        data['message_id2']=message_data2.message_id
+        data['name_kb']=call.data[29:]
+    await astate.Admin_State.chennger_kbname_player.text.set()
+
+@dp.callback_query_handler(IsAdminCAndChenneger_swich_player())
+async def swich_player_admin(call: types.CallbackQuery):
+    await swich_player(player_name=call.data[28:])
+    await call.message.edit_reply_markup(await get_Player_menu())
+    
+@dp.callback_query_handler(IsAdminC(), text='text_settings_admin')
+async def text_settings_admin(call: types.CallbackQuery):
+    await call.message.edit_reply_markup(admin_menu_text)
+
+
+@dp.callback_query_handler(IsAdminC(), text='chenneger_franchise_text_settings_admin')
+async def chennger_wellcome_text_settings_admin(call: types.CallbackQuery, state: FSMContext):
+    message_data=await bot.send_message(chat_id=call.from_user.id, text='<code>{username_bot}</code>-username бота\n<code>{bot_id}</code>-id бота\n<code>{username}</code>-username пользователя\n<code>{full_name}</code>-полное имя пользователя\n<code>{user_id}</code>-id пользователя\n<code>{chapter}</code>-начало поевление данных о франшизе(указывать один раз!)\n\nМожно ипользовать разметку HTML✂️\n\nХорошо отправь мне новое приветствие🖊', reply_markup=ikb_back, parse_mode=types.ParseMode.HTML)
+    async with state.proxy() as data:
+        data['message_id']=message_data.message_id
+    await astate.Admin_State.chennger_franchise_text.text.set()
+
+@dp.callback_query_handler(IsAdminC(), text='chenneger_wellcome_text_settings_admin')
+async def chennger_wellcome_text_settings_admin(call: types.CallbackQuery, state: FSMContext):
+    message_data=await bot.send_message(chat_id=call.from_user.id, text='<code>{username_bot}</code>-username бота\n<code>{bot_id}</code>-id бота\n<code>{username}</code>-username пользователя\n<code>{full_name}</code>-полное имя пользователя\n<code>{user_id}</code>-id пользователя\n\nМожно ипользовать разметку HTML✂️\n\nХорошо отправь мне новое приветствие🖊', reply_markup=ikb_back, parse_mode=types.ParseMode.HTML)
+    async with state.proxy() as data:
+        data['message_id']=message_data.message_id
+    await astate.Admin_State.chennger_wellcome_text.text.set()
+
+@dp.callback_query_handler(IsAdminC(), text='chenneger_film_text_settings_admin')
+async def chennger_wellcome_text_settings_admin(call: types.CallbackQuery, state: FSMContext):
+    message_data=await bot.send_message(chat_id=call.from_user.id, text='<code>{username_bot}</code>-username бота\n<code>{bot_id}</code>-id бота\n<code>{username}</code>-username пользователя\n<code>{full_name}</code>-полное имя пользователя\n<code>{user_id}</code>-id пользователя\n<code>{film_name}</code>-название фильма\n\nМожно ипользовать разметку HTML✂️\n\nХорошо отправь мне новый текст для фильмов🖊', reply_markup=ikb_back, parse_mode=types.ParseMode.HTML)
+    async with state.proxy() as data:
+        data['message_id']=message_data.message_id
+    await astate.Admin_State.chennger_film_text.text.set()
+
+#Автор: @K1p1k#
+#Загружено с TG @KiTools#
+#Оставь эту надпись#
